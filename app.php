@@ -19,7 +19,7 @@ if ($uri === '/api/status')    { handleStatus(); exit; }
 
 // ====== GUI (admin only) ======
 require_once __DIR__ . '/config.php';
-if (!isAdmin()) { header('Location: admin/index.php'); exit; }
+if (!isAdmin()) { header('Location: /admin/index.php'); exit; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
