@@ -17,10 +17,7 @@
         <a href="index.php" class="brand"><?= $site_title ?></a>
         <div class="nav-links">
             <a href="index.php">Beranda</a>
-            <?php if (isAdmin()): ?>
-                <a href="admin/dashboard.php">Admin Panel</a>
-                <a href="admin/logout.php">Logout</a>
-            <?php endif; ?>
+
         </div>
     </div>
 </nav>
@@ -62,11 +59,7 @@
         <?php if (empty($result['videos'])): ?>
             <p class="no-videos">
                 Belum ada video.
-                <?php if (isAdmin()): ?>
-                    <a href="admin/sync.php">Sinkronisasi dari LuluStream</a> atau <a href="admin/terabox.php">Import dari Terabox</a>
-                <?php else: ?>
-                    Hubungi admin untuk menambahkan video.
-                <?php endif; ?>
+                Belum ada video.
             </p>
         <?php else: ?>
             <?php $ad_placed = false; ?>
