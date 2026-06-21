@@ -7,12 +7,14 @@
 define('VIDEO_EXTS', ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v', '3gp', 'mpeg']);
 define('UPLOAD_DIR', __DIR__ . '/temp_uploads');
 
+function jsonResponse($data) { header('Content-Type: application/json'); echo json_encode($data); }
+
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // ====== ROUTING ======
-if ($uri === '/api/scan')      { handleScan(); exit; }
-if ($uri === '/api/upload')    { handleUpload(); exit; }
-if ($uri === '/api/upload-phone') { handlePhoneUpload(); exit; }
+if ($uri === '/api/scan')      { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handleScan(); exit; }
+if ($uri === '/api/upload')    { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handleUpload(); exit; }
+if ($uri === '/api/upload-phone') { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handlePhoneUpload(); exit; }
 if ($uri === '/api/status')    { handleStatus(); exit; }
 
 // ====== GUI ======
@@ -355,8 +357,6 @@ if ('serviceWorker' in navigator) {
 </html>
 <?php
 // ====== API HANDLERS ======
-
-function jsonResponse($data) { header('Content-Type: application/json'); echo json_encode($data); }
 
 function getServerIps() {
     $ips = [];
