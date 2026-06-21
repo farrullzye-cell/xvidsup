@@ -1,0 +1,26 @@
+# Database (local data)
+database.sqlite
+*.sqlite
+*.sqlite3
+
+# Temp uploads from phone
+temp_uploads/
+uploads/
+tmp/
+
+# Debug logs
+upload_debug.log
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Env
+.env

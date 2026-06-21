@@ -1,0 +1,17 @@
+{
+  "name": "XVIDSUP Uploader",
+  "short_name": "XVIDSUP",
+  "description": "Upload video ke LuluStream + Database dari HP atau PC",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f11",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
