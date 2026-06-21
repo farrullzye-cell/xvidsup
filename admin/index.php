@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($username === ADMIN_USER && $password === ADMIN_PASS) {
         $_SESSION['admin_logged_in'] = true;
-        header('Location: dashboard.php');
+        header('Location: ' . adminUrl('dashboard.php'));
         exit;
     } else {
         $error = 'Username atau password salah!';

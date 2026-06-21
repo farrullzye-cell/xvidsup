@@ -6,5 +6,5 @@ if ($code) {
     deleteVideo($code);
     $_SESSION['flash'] = 'Video dihapus dari database lokal. Untuk hapus dari LuluStream, lakukan via dashboard LuluStream.';
 }
-header('Location: videos.php');
+header('Location: ' . adminUrl('videos.php'));
 exit;

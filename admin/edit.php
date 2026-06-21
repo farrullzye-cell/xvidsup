@@ -4,7 +4,7 @@ $code = $_GET['code'] ?? '';
 $video = getVideoByCode($code);
 if (!$video) {
     $_SESSION['flash'] = 'Video tidak ditemukan!';
-    header('Location: videos.php');
+    header('Location: ' . adminUrl('videos.php'));
     exit;
 }
 

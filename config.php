@@ -624,7 +624,18 @@ function isAdmin() {
 }
 
 function requireAdmin() {
-    if (!isAdmin()) { header('Location: ../index.php'); exit; }
+    if (!isAdmin()) { header('Location: ' . adminUrl('index.php')); exit; }
+}
+
+function adminUrl($path = '') {
+    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+    $base = '/' . ADMIN_SECRET_PATH;
+    // Detect current admin base from URL
+    if (preg_match('#^/(manage|admin)(/|$)#', $uri, $m)) {
+        $base = '/' . $m[1];
+    }
+    if ($path) return $base . '/' . ltrim($path, '/');
+    return $base . '/';
 }
 
 function getCategories() {

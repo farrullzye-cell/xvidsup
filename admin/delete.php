@@ -5,5 +5,5 @@ if ($code) {
     deleteVideo($code);
     $_SESSION['flash'] = 'Video berhasil dihapus dari database lokal.';
 }
-header('Location: videos.php');
+header('Location: ' . adminUrl('videos.php'));
 exit;
