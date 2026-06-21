@@ -226,6 +226,7 @@ a:hover { color: #b3b3b3; }
 }
 .source-badge.terabox { background: #1da1f2; }
 .source-badge.lulustream { background: #e50914; }
+.source-badge.videy { background: #6c63ff; }
 
 .duration-badge {
     position: absolute;

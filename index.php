@@ -17,7 +17,9 @@
         <a href="index.php" class="brand"><?= $site_title ?></a>
         <div class="nav-links">
             <a href="index.php">Beranda</a>
-
+            <?php if (isAdmin()): ?>
+                <a href="<?= '/' . ADMIN_SECRET_PATH ?>">Admin</a>
+            <?php endif; ?>
         </div>
     </div>
 </nav>
@@ -78,8 +80,10 @@
                             <?php if (!empty($video['duration'])): ?>
                                 <span class="duration-badge"><?= formatDuration($video['duration']) ?></span>
                             <?php endif; ?>
-                            <?php if (($video['source'] ?? 'lulustream') === 'terabox'): ?>
+                            <?php if (($src = $video['source'] ?? 'lulustream') === 'terabox'): ?>
                                 <span class="source-badge terabox">Terabox</span>
+                            <?php elseif ($src === 'videy'): ?>
+                                <span class="source-badge videy">Videy</span>
                             <?php endif; ?>
                         </div>
                         <div class="video-info">

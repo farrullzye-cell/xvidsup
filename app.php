@@ -15,6 +15,8 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 if ($uri === '/api/scan')      { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handleScan(); exit; }
 if ($uri === '/api/upload')    { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handleUpload(); exit; }
 if ($uri === '/api/upload-phone') { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handlePhoneUpload(); exit; }
+if ($uri === '/api/upload-videy') { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handleVideyUpload(); exit; }
+if ($uri === '/api/upload-phone-videy') { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handlePhoneVideyUpload(); exit; }
 if ($uri === '/api/status')    { handleStatus(); exit; }
 
 // ====== GUI (admin only) ======
@@ -134,6 +136,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <label>Kategori</label>
         <input type="text" id="category" placeholder="(opsional)">
       </div>
+      <div class="row">
+        <label>Tujuan</label>
+        <select id="destination">
+          <option value="lulustream">LuluStream</option>
+          <option value="videy">Videy.co</option>
+        </select>
+      </div>
       <div class="settings-toggle" onclick="toggleSettings()">⚙ Lanjutan</div>
       <div class="settings-panel hidden" id="settingsPanel">
         <div class="row"><label>Folder ID</label><input type="text" id="fldId" placeholder="(opsional)"></div>
@@ -170,10 +179,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <input type="text" id="phoneCategory" placeholder="(opsional)">
       </div>
       <div class="row">
+        <label>Tujuan</label>
+        <select id="phoneDestination">
+          <option value="lulustream">LuluStream</option>
+          <option value="videy">Videy.co</option>
+        </select>
+      </div>
+      <div class="row">
         <label></label>
         <label style="min-width:auto;cursor:pointer"><input type="checkbox" id="phoneDelete" checked> Hapus dari HP setelah upload</label>
       </div>
-      <button class="btn btn-success btn-block" id="phoneUploadBtn" onclick="startPhoneUpload()" disabled>⬆ Upload ke LuluStream</button>
+      <button class="btn btn-success btn-block" id="phoneUploadBtn" onclick="startPhoneUpload()" disabled>⬆ Upload</button>
       <div class="progress-bar hidden" id="phoneProgress"><div class="fill" id="phoneProgressFill"></div></div>
       <div class="stats hidden" id="phoneStats"></div>
       <div class="log" id="phoneLog"></div>
@@ -244,6 +260,8 @@ async function startUpload() {
     const fldId = document.getElementById('fldId').value.trim();
     const catId = document.getElementById('catId').value.trim();
     const deleteAfter = document.getElementById('deleteAfter').checked;
+    const destination = document.getElementById('destination').value;
+    const uploadUrl = destination === 'videy' ? '/api/upload-videy' : '/api/upload';
     document.getElementById('uploadBtn').disabled = true;
     document.getElementById('uploadBtn').textContent = '⏳ Uploading...';
     document.getElementById('progressBar').classList.remove('hidden');
@@ -256,7 +274,7 @@ async function startUpload() {
         se.className='status uploading';
         log('log','['+(i+1)+'/'+scannedFiles.length+'] Uploading: '+f.name);
         try{
-            const r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:f,category,fld_id:fldId,cat_id:catId,delete_after:deleteAfter})});
+            const r=await fetch(uploadUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:f,category,fld_id:fldId,cat_id:catId,delete_after:deleteAfter})});
             const d=await r.json();
             if(d.success){se.className='status done';ok++;log('log','✅ '+f.name+' → '+d.file_code,'success');}
             else if(d.skipped){se.className='status done';skip++;log('log','⏭ '+f.name+' (already exists)','warn');}
@@ -321,11 +339,14 @@ async function startPhoneUpload() {
         const se=document.getElementById('ps-'+i);
         se.className='status uploading';
         log('phoneLog','['+(i+1)+'/'+phoneFiles.length+'] Uploading: '+f.name);
+        const dest = document.getElementById('phoneDestination').value;
         const formData = new FormData();
         formData.append('video', f);
         formData.append('category', cat);
+        formData.append('destination', dest);
         try{
-            const r=await fetch('/api/upload-phone', {method:'POST', body:formData});
+            const apiUrl = dest === 'videy' ? '/api/upload-phone-videy' : '/api/upload-phone';
+            const r=await fetch(apiUrl, {method:'POST', body:formData});
             const d=await r.json();
             if(d.success){se.className='status done';ok++;log('phoneLog','✅ '+f.name+' → '+d.file_code,'success');}
             else if(d.skipped){se.className='status done';skip++;log('phoneLog','⏭ '+f.name+' (already exists)','warn');}
@@ -520,6 +541,115 @@ function processUploadedFile($tmpPath, $origName, $category) {
     if ($stmt->rowCount() === 0) { $db->prepare("UPDATE videos SET title=?,size=?,status='active',category=? WHERE file_code=?")->execute([$origName,$size,$cat,$fileCode]); }
 
     return ['success' => true, 'file_code' => $fileCode, 'file_name' => $origName];
+}
+
+function handlePhoneVideyUpload() {
+    require_once __DIR__ . '/config.php';
+    if (!isset($_FILES['video'])) { jsonResponse(['error' => 'No file uploaded']); return; }
+    $category = $_POST['category'] ?? '';
+    if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0777, true);
+    $uploaded = $_FILES['video'];
+    if (is_array($uploaded['name'])) {
+        $results = [];
+        $total = count($uploaded['name']);
+        for ($i = 0; $i < $total; $i++) {
+            if ($uploaded['error'][$i] !== UPLOAD_ERR_OK) { $results[] = ['success' => false, 'error' => 'Upload error: ' . $uploaded['error'][$i]]; continue; }
+            $results[] = processVideyPhoneFile($uploaded['tmp_name'][$i], $uploaded['name'][$i], $category);
+        }
+        jsonResponse(['batch' => true, 'results' => $results]);
+    } else {
+        if ($uploaded['error'] !== UPLOAD_ERR_OK) { jsonResponse(['error' => 'Upload error: ' . $uploaded['error']]); return; }
+        $result = processVideyPhoneFile($uploaded['tmp_name'], $uploaded['name'], $category);
+        jsonResponse($result);
+    }
+}
+
+function processVideyPhoneFile($tmpPath, $origName, $category) {
+    require_once __DIR__ . '/config.php';
+    luluDebugLog('processVideyPhoneFile: ' . $origName);
+    $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['mp4', 'mov'])) { @unlink($tmpPath); return ['success' => false, 'error' => 'Videy only supports MP4/MOV']; }
+    $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+    $destPath = UPLOAD_DIR . '/' . uniqid() . '_' . $safeName;
+    if (!move_uploaded_file($tmpPath, $destPath)) { return ['success' => false, 'error' => 'Failed to save file']; }
+
+    $db = getDB();
+    $baseName = pathinfo($origName, PATHINFO_FILENAME);
+    $stmt = $db->prepare("SELECT COUNT(*) FROM videos WHERE title LIKE ? AND source = 'videy'");
+    $stmt->execute(["$baseName%"]);
+    if ($stmt->fetchColumn() > 0) { @unlink($destPath); return ['skipped' => true, 'message' => 'Already exists']; }
+
+    $fileSize = filesize($destPath);
+    $result = videyUploadFile($destPath);
+    @unlink($destPath);
+
+    if (!$result || !isset($result['id'])) {
+        $errMsg = $result['msg'] ?? ($result ? json_encode($result) : 'Upload failed');
+        return ['success' => false, 'error' => $errMsg];
+    }
+
+    $videyId = $result['id'];
+    $cat = $category ?: 'Uncategorized';
+    $stmt = $db->prepare("INSERT OR IGNORE INTO videos (file_code, title, thumbnail, size, source, status, category, videy_id, created_at) VALUES (?,?,?,?,'videy','active',?,?,?)");
+    $stmt->execute([$videyId, $origName, '', $fileSize, $cat, $videyId, date('Y-m-d H:i:s')]);
+    if ($stmt->rowCount() === 0) {
+        $db->prepare("UPDATE videos SET title=?, size=?, status='active', category=? WHERE file_code=?")->execute([$origName, $fileSize, $cat, $videyId]);
+    }
+    return ['success' => true, 'file_code' => $videyId, 'file_name' => $origName, 'source' => 'videy'];
+}
+
+function handleVideyUpload() {
+    require_once __DIR__ . '/config.php';
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input || !isset($input['file'])) { jsonResponse(['error' => 'Invalid request']); return; }
+
+    $filePath = $input['file']['path'] ?? $input['file'] ?? '';
+    $fileName = $input['file']['name'] ?? basename($filePath);
+    $category = $input['category'] ?? 'Uncategorized';
+    $deleteAfter = $input['delete_after'] ?? false;
+
+    if (!$filePath || !file_exists($filePath)) { jsonResponse(['error' => 'File not found: ' . $filePath]); return; }
+
+    luluDebugLog('Videy upload: ' . $fileName);
+
+    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['mp4', 'mov'])) {
+        jsonResponse(['error' => 'Videy only supports MP4 and MOV files']);
+        return;
+    }
+
+    $db = getDB();
+    $baseName = pathinfo($fileName, PATHINFO_FILENAME);
+    $stmt = $db->prepare("SELECT COUNT(*) FROM videos WHERE title LIKE ? AND source = 'videy'");
+    $stmt->execute(["$baseName%"]);
+    if ($stmt->fetchColumn() > 0) {
+        if ($deleteAfter) @unlink($filePath);
+        jsonResponse(['skipped' => true, 'message' => 'Already exists in DB']);
+        return;
+    }
+
+    luluDebugLog('Calling videyUploadFile');
+    $result = videyUploadFile($filePath);
+    luluDebugLog('videyUploadFile returned', $result);
+
+    if (!$result || !isset($result['id'])) {
+        $errMsg = $result['msg'] ?? ($result ? json_encode($result) : 'Upload failed');
+        luluDebugLog('Videy upload FAILED', $errMsg);
+        jsonResponse(['error' => $errMsg]);
+        return;
+    }
+
+    $videyId = $result['id'];
+    $fileSize = filesize($filePath);
+    luluDebugLog('Videy upload SUCCESS, id: ' . $videyId);
+
+    $stmt = $db->prepare("INSERT OR IGNORE INTO videos (file_code, title, thumbnail, size, source, status, category, videy_id, created_at) VALUES (?,?,?,?,'videy','active',?,?,?)");
+    $stmt->execute([$videyId, $fileName, '', $fileSize, $category, $videyId, date('Y-m-d H:i:s')]);
+    if ($stmt->rowCount() === 0) {
+        $db->prepare("UPDATE videos SET title=?, size=?, status='active', category=? WHERE file_code=?")->execute([$fileName, $fileSize, $category, $videyId]);
+    }
+    if ($deleteAfter) @unlink($filePath);
+    jsonResponse(['success' => true, 'file_code' => $videyId, 'file_name' => $fileName, 'source' => 'videy']);
 }
 
 function handleStatus() {

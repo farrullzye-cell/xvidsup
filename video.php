@@ -45,8 +45,8 @@ $embedUrl = getEmbedUrl($code, $source);
         <div class="nav-links">
             <a href="index.php">Beranda</a>
             <?php if (isAdmin()): ?>
-                <a href="admin/dashboard.php">Admin Panel</a>
-                <a href="admin/logout.php">Logout</a>
+                <a href="<?= '/' . ADMIN_SECRET_PATH ?>/dashboard.php">Admin Panel</a>
+                <a href="<?= '/' . ADMIN_SECRET_PATH ?>/logout.php">Logout</a>
             <?php endif; ?>
         </div>
     </div>
@@ -63,6 +63,14 @@ $embedUrl = getEmbedUrl($code, $source);
                 <a href="https://www.terabox.com/play/video?fs_id=<?= urlencode($video['file_code']) ?>" target="_blank" class="btn" style="background:#1da1f2;color:#fff;padding:12px 30px;text-decoration:none;border-radius:4px">Buka di Terabox</a>
                 <p style="margin-top:15px;font-size:.8rem;color:#555">atau minta admin untuk transfer video ke LuluStream agar bisa diputar langsung.</p>
             </div>
+        <?php elseif ($source === 'videy'): ?>
+            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:4px;background:#000">
+                <video src="https://cdn.videy.co/<?= urlencode($video['file_code']) ?>.mp4"
+                       style="position:absolute;top:0;left:0;width:100%;height:100%"
+                       controls
+                       playsinline
+                       preload="metadata"></video>
+            </div>
         <?php else: ?>
             <iframe src="<?= htmlspecialchars($embedUrl) ?>"
                     allowfullscreen
@@ -78,7 +86,7 @@ $embedUrl = getEmbedUrl($code, $source);
     <div class="video-details">
         <h1><?= htmlspecialchars($video['title']) ?></h1>
         <div class="meta">
-            <span>Sumber: <?= $source === 'terabox' ? 'Terabox' : 'LuluStream' ?></span>
+            <span>Sumber: <?= $source === 'terabox' ? 'Terabox' : ($source === 'videy' ? 'Videy' : 'LuluStream') ?></span>
             <span>Kategori: <?= htmlspecialchars($video['category'] ?? 'Uncategorized') ?></span>
             <span>Ditonton: <?= number_format((int)($video['views'] ?? 0)) ?>x</span>
             <?php if (!empty($video['duration'])): ?>

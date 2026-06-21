@@ -8,6 +8,9 @@ $site_desc  = "Koleksi Video Terlengkap";
 define('LULU_API_KEY', getenv('LULU_API_KEY') ?: '294910gde0nqjw8ng4a9bx');
 define('LULU_BASE_URL', 'https://api.lulustream.com/api');
 
+// ========== VIDEY.CO API ==========
+define('VIDEY_UPLOAD_URL', 'https://videy.co/api/upload');
+
 // ========== TERABOX CONFIG ==========
 define('TERABOX_COOKIE_NDUS', getenv('TERABOX_COOKIE_NDUS') ?: 'YfkvlXPpeHuiN8AQF4sING36R-dQKzB-_WdjtwRc');
 define('TERABOX_COOKIE_JS_TOKEN', getenv('TERABOX_COOKIE_JS_TOKEN') ?: '');
@@ -20,6 +23,7 @@ define('TERABOX_COOKIE_NDUT_FMV', getenv('TERABOX_COOKIE_NDUT_FMV') ?: 'f6f88fa7
 // ========== ADMIN LOGIN ==========
 define('ADMIN_USER', getenv('ADMIN_USER') ?: 'admin');
 define('ADMIN_PASS', getenv('ADMIN_PASS') ?: 'admin123');
+define('ADMIN_SECRET_PATH', getenv('ADMIN_SECRET_PATH') ?: 'manage');
 
 define('DB_PATH', getenv('DB_PATH') ?: __DIR__ . '/database.sqlite');
 date_default_timezone_set('Asia/Jakarta');
@@ -142,6 +146,43 @@ function luluUploadFile($filePath, $fileName = '', $fldId = '') {
     }
 
     return $data;
+}
+
+// ========== VIDEY.CO UPLOAD ==========
+function videyUploadFile($filePath) {
+    if (!file_exists($filePath)) return ['msg' => 'File not found'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $filePath);
+    finfo_close($finfo);
+    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    if (!in_array($ext, ['mp4', 'mov'])) return ['msg' => 'Only MP4 and MOV files are supported by Videy'];
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, VIDEY_UPLOAD_URL);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, ['file' => new CURLFile($filePath, $mime ?: 'video/mp4', basename($filePath))]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 0);
+    $result = @curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($result === false || $result === '') {
+        return ['msg' => 'cURL error: ' . ($curlError ?: 'Empty response')];
+    }
+
+    $data = json_decode($result, true);
+    if (!$data) {
+        $preview = substr(preg_replace('/\s+/', ' ', $result), 0, 200);
+        return ['msg' => 'Invalid response: ' . $preview];
+    }
+
+    if (isset($data['error'])) return ['msg' => $data['error']];
+    if (isset($data['id'])) return $data;
+    return ['msg' => 'Unexpected response: ' . json_encode($data)];
 }
 
 // GET /folder/list - Daftar folder
@@ -483,6 +524,7 @@ function getDB() {
         // Migrasi kolom baru
         try { $db->exec("ALTER TABLE videos ADD COLUMN source TEXT DEFAULT 'lulustream'"); } catch (Exception $e) {}
         try { $db->exec("ALTER TABLE videos ADD COLUMN terabox_fs_id TEXT DEFAULT ''"); } catch (Exception $e) {}
+        try { $db->exec("ALTER TABLE videos ADD COLUMN videy_id TEXT DEFAULT ''"); } catch (Exception $e) {}
     }
     return $db;
 }
@@ -594,6 +636,9 @@ function getCategories() {
 function getEmbedUrl($fileCode, $source = 'lulustream') {
     if ($source === 'terabox') {
         return "https://www.terabox.com/play/video?fs_id={$fileCode}";
+    }
+    if ($source === 'videy') {
+        return "https://videy.co/v?id={$fileCode}";
     }
     return "https://lulustream.com/e/{$fileCode}";
 }

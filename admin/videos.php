@@ -42,6 +42,7 @@ $result = getVideos('', $search, $page, 20, $sourceFilter);
         <select name="source">
             <option value="">Semua Sumber</option>
             <option value="lulustream" <?= $sourceFilter === 'lulustream' ? 'selected' : '' ?>>LuluStream</option>
+            <option value="videy" <?= $sourceFilter === 'videy' ? 'selected' : '' ?>>Videy</option>
             <option value="terabox" <?= $sourceFilter === 'terabox' ? 'selected' : '' ?>>Terabox</option>
         </select>
         <button type="submit">Cari</button>
@@ -81,7 +82,7 @@ $result = getVideos('', $search, $page, 20, $sourceFilter);
                     <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                         <?= htmlspecialchars($video['title']) ?>
                     </td>
-                    <td><span class="source-badge <?= $video['source'] ?? 'lulustream' ?>"><?= ($video['source'] ?? 'lulustream') === 'terabox' ? 'Terabox' : 'LuluStream' ?></span></td>
+                    <td><span class="source-badge <?= $video['source'] ?? 'lulustream' ?>"><?= ($src = $video['source'] ?? 'lulustream') === 'terabox' ? 'Terabox' : ($src === 'videy' ? 'Videy' : 'LuluStream') ?></span></td>
                     <td><?= htmlspecialchars($video['category']) ?></td>
                     <td><?= number_format((int)$video['views']) ?></td>
                     <td><?= formatDuration($video['duration']) ?></td>
