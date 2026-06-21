@@ -17,7 +17,9 @@ if ($uri === '/api/upload')    { require_once __DIR__ . '/config.php'; if (!isAd
 if ($uri === '/api/upload-phone') { require_once __DIR__ . '/config.php'; if (!isAdmin()) { jsonResponse(['error' => 'Unauthorized']); exit; } handlePhoneUpload(); exit; }
 if ($uri === '/api/status')    { handleStatus(); exit; }
 
-// ====== GUI ======
+// ====== GUI (admin only) ======
+require_once __DIR__ . '/config.php';
+if (!isAdmin()) { header('Location: admin/index.php'); exit; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
